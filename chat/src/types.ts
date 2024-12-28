@@ -1,6 +1,8 @@
 export interface Message {
-    id: string;
     message: string;
     author: string;
     datetime: string;
+}
+export interface Messages extends Message {
+    id: string;
 }

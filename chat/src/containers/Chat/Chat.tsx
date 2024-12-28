@@ -1,98 +1,98 @@
-import { useEffect, useState, useRef } from "react";
-import { Message } from "../../types";
+import {useEffect, useState, useCallback} from "react";
+import {Message, Messages} from "../../types";
 import axiosApi from "../../axiosApi";
-import Card from "../../components/Card/Card";
+import dayjs from "dayjs";
+import {Button, Card, CardContent, Grid2, TextField, Typography} from "@mui/material";
+import * as React from "react";
 
 const Chat = () => {
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [newMessage, setNewMessage] = useState<string>("");
-    const messageEndRef = useRef<HTMLDivElement | null>(null);
-    const [lastMessageDate, setLastMessageDate] = useState<string | null>(null);
+    const currentDate = dayjs();
+    const formattedDate = currentDate.format('YYYY-MM-DD HH:mm:ss');
+    const [messages, setMessages] = useState<Message>({
+        message: '',
+        author: '',
+        datetime: formattedDate
+    });
+    const [msgs, setMsgs] = useState<Messages[]>([]);
 
-    const getData = async () => {
+    const getMsgs = useCallback(async () => {
         try {
-            const url = lastMessageDate ? `/messages?datetime=${lastMessageDate}` : "/messages";
-            const { data } = await axiosApi.get<Message[]>(url);
-            setMessages(prevMessages => [...prevMessages, ...data]);
-            if (data.length > 0) {
-                setLastMessageDate(data[data.length - 1].datetime);
-            }
+            const {data: response} = await axiosApi.get("/chat");
+            setMsgs(response);
         } catch (e) {
-            console.error("Some error", e);
+            console.log(e);
         }
-    };
+    }, [])
 
-    const scrollToBottom = () => {
-        if (messageEndRef.current) {
-            messageEndRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-    };
 
-    useEffect(() => {
-        getData();
-        const interval = setInterval(getData, 3000);
-        return () => clearInterval(interval);
-    }, [lastMessageDate]);
-
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+    const onHandleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setMessages(prev => ({...prev, [e.target.name]: e.target.value}));
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (newMessage.trim() === "") return;
-
-        const data = new URLSearchParams();
-        data.set('message', newMessage);
-        data.set('author', 'try');
-
-        try {
-            await axiosApi.post("/messages", data);
-
-            setNewMessage("");
-
-        } catch (e) {
-            console.error("Failed to send message", e);
+        if (messages.author.trim() && messages.message.trim()) {
+            try {
+                await axiosApi.post('/chat', JSON.stringify(messages), {
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                });
+                setMessages(prev => ({...prev, message: ''}));
+            } catch (e) {
+                console.log(e);
+            }
+        } else {
+            alert("Author and message cannot be empty");
         }
     };
 
-    const formatDateTime = (datetime: string) => {
-        const date = new Date(datetime);
-        return date.toLocaleString('ru-RU', {
-            day: '2-digit',
-            month: '2-digit',
-            year: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-    };
+    useEffect(() => {
+        const interval = setInterval(() => {
+            void getMsgs();
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [getMsgs]);
+
+    useEffect(() => {
+        void getMsgs();
+    }, [getMsgs]);
+
 
     return (
-        <div className="h-75">
-            <div className="overflow-y-scroll h-50">
-                {messages.length === 0 ? (
-                    <p>No messages</p>
-                ) : (
-                    messages.map((message) => (
-                        <Card
-                            author={message.author}
-                            message={message.message}
-                            datetime={formatDateTime(message.datetime)}
-                            key={message.id}
-                        />
-                    ))
-                )}
-                <div ref={messageEndRef} /> {}
-            </div>
-            <form className="d-flex justify-content-between align-items-center gap-2 my-5" onSubmit={handleSubmit}>
-                <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    className="form-control"
-                    placeholder="Type your message here"
-                />
-                <button type="submit" className="btn btn-success">Send</button>
+        <div>
+            <Grid2 container justifyContent="center">
+                <Grid2 size={10} sx={{overflowY: 'scroll', height: '80vh'}}>
+                    {msgs.length > 0 ? msgs.reverse().slice(0, 30).map((msg: Messages) => (
+                        <Card sx={{ minWidth: 275, marginTop: 1}} key={msg.id}>
+                            <CardContent>
+                                <Grid2 sx={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+                                    <Typography variant="h5"  sx={{ color: '#000'}}>
+                                        Author: {msg.author}
+                                    </Typography>
+                                    <Typography>{msg.datetime}</Typography>
+                                </Grid2>
+                                <Typography sx={{fontSize: 20, marginTop: 1}}>
+                                    Date: {msg.message}
+                                </Typography>
+                            </CardContent>
+                        </Card>
+                    )) : 'No messages'}
+                </Grid2>
+            </Grid2>
+            <form onSubmit={handleSubmit} style={{position: 'absolute', bottom: 15, right: 50, left: 50}}>
+                <Grid2 container spacing={1} alignItems="center">
+                    <Grid2 size={2}>
+                        <TextField label="Author" variant="outlined" name="author" value={messages.author} onChange={onHandleChange} />
+                    </Grid2>
+                    <Grid2 size="grow">
+                        <TextField label="Message" variant="outlined" fullWidth name="message" onChange={onHandleChange} value={messages.message} />
+                    </Grid2>
+                    <Grid2 size="auto">
+                        <Button type="submit" variant="contained" color="success" size="large">Send</Button>
+                    </Grid2>
+                </Grid2>
             </form>
         </div>
     );
