@@ -15,6 +15,7 @@ const db = {
         }
     },
     async getAll() {
+        await this.init()
         return messages;
     },
     async add(message: Message) {

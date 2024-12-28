@@ -3,6 +3,10 @@ import db from "../db";
 
 export const messagesRouter = express.Router();
 
+messagesRouter.get("/", async (req, res) => {
+    res.status(200).send(await db.getAll());
+})
+
 messagesRouter.post("/", async (req: express.Request, res: express.Response) => {
 
     if (!req.body.message || !req.body.author) {
