@@ -59,22 +59,23 @@ const Chat = () => {
         void getMsgs();
     }, [getMsgs]);
 
+    const drawMessages = msgs.slice(0, 30);
 
     return (
         <div>
             <Grid2 container justifyContent="center">
                 <Grid2 size={10} sx={{overflowY: 'scroll', height: '80vh'}}>
-                    {msgs.length > 0 ? msgs.reverse().slice(0, 30).map((msg: Messages) => (
+                    {msgs.length > 0 ? drawMessages.reverse().map((msg: Messages) => (
                         <Card sx={{ minWidth: 275, marginTop: 1}} key={msg.id}>
                             <CardContent>
                                 <Grid2 sx={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
                                     <Typography variant="h5"  sx={{ color: '#000'}}>
                                         Author: {msg.author}
                                     </Typography>
-                                    <Typography>{msg.datetime}</Typography>
+                                    <Typography>Date: {msg.datetime}</Typography>
                                 </Grid2>
                                 <Typography sx={{fontSize: 20, marginTop: 1}}>
-                                    Date: {msg.message}
+                                    Message: {msg.message}
                                 </Typography>
                             </CardContent>
                         </Card>
